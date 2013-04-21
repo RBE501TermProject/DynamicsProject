@@ -1,14 +1,19 @@
 <package>
-  <description brief="DynamicsProject">
+	<description brief="DynamicsProject">
 
      DynamicsProject
 
-  </description>
-  <author>David Kent</author>
-  <license>BSD</license>
-  <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/DynamicsProject</url>
+	</description>
+	<author>David Kent</author>
+	<license>BSD</license>
+	<review status="unreviewed" notes=""/>
+	<url>http://ros.org/wiki/DynamicsProject</url>
+
+	<depend package="roslib"/>
+	<depend package="roscpp"/>
+	<depend package="std_msgs"/>
+	<depend package="cv_bridge"/>
+	<depend package="sensor_msgs"/>
 
 </package>
-
 
