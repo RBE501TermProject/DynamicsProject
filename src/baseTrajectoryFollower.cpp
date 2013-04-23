@@ -37,7 +37,7 @@ Eigen::Matrix<double, 4, 3> cubicTrajCoeff(const nav_msgs::Path::ConstPtr& path,
 	T << 1, t0, pow(t0, 2), pow(t0, 3), 0, 1, 2 * t0, 3 * pow(t0, 2), 1, tf, pow(
 			tf, 2), pow(tf, 3), 0, 1, 2 * tf, 3 * pow(tf, 2);
 
-	ROS_INFO_STREAM("T = " << std::endl << T);
+//	ROS_INFO_STREAM("T = " << std::endl << T);
 	Eigen::Matrix<double, 4, 3> Q;
 	double x0 = odom->pose.pose.position.x;
 	double y0 = odom->pose.pose.position.y;
@@ -67,11 +67,11 @@ Eigen::Matrix<double, 4, 3> cubicTrajCoeff(const nav_msgs::Path::ConstPtr& path,
 
 	Q << x0, y0, th0, dx0, dy0, dth0, xf, yf, thf, dxf, dyf, dthf;
 
-	ROS_INFO_STREAM("Q = " << std::endl << Q);
+//	ROS_INFO_STREAM("Q = " << std::endl << Q);
 
 	Eigen::Matrix<double, 4, 3> A;
 	A = T.inverse() * Q;
-	ROS_INFO_STREAM("A = " << std::endl << A);
+//	ROS_INFO_STREAM("A = " << std::endl << A);
 	return A;
 }
 
@@ -126,7 +126,7 @@ geometry_msgs::PoseStamped getPoint(Eigen::Matrix<double, 4, 3> coeff,
  */
 geometry_msgs::Twist getTwist(geometry_msgs::PoseStamped goal) {
 	tf::Pose error = getErrorTF(goal);
-	double dt = (goal.header.stamp - lastOdom->header.stamp).toSec();
+	double dt = (goal.header.stamp - /*ros::Time::now()*/ lastOdom->header.stamp).toSec();
 	ROS_INFO_STREAM("dt = " << dt);
 	geometry_msgs::Twist twist;
 	twist.linear.x = error.getOrigin().getX() / dt;
@@ -148,21 +148,21 @@ geometry_msgs::Twist getTwist(geometry_msgs::PoseStamped goal) {
  */
 void pathCallback(const nav_msgs::Path::ConstPtr& path) {
 	ROS_INFO("path received");
-	ros::Rate rate(10);
+	ros::Rate rate(20);
 	for (unsigned int i = 0; i < path->poses.size(); i++) {
 		ros::spinOnce();
 		geometry_msgs::PoseStamped goal = path->poses[i];
 		ROS_INFO_STREAM(
 				"going to pose " << i << " (" << goal.pose.position.x << ", " << goal.pose.position.y << ")");
 		Eigen::Matrix<double, 4, 3> coeff = cubicTrajCoeff(path, i);
-		while (ros::ok() && ros::Time::now() < goal.header.stamp) {
-			double dt = goal.header.stamp.toSec() - ros::Time::now().toSec();
+		while (ros::ok() && ros::Time::now() + rate.expectedCycleTime() < goal.header.stamp) {
+			ros::spinOnce();
 			geometry_msgs::PoseStamped nextPoint;
-			if (dt < rate.cycleTime().toSec())
+//			if (dt < rate.cycleTime().toSec())
 				nextPoint = goal;
-			else
-				nextPoint = getPoint(coeff,
-						ros::Time::now() + rate.expectedCycleTime());
+//			else
+//				nextPoint = getPoint(coeff,
+//						ros::Time::now() + rate.expectedCycleTime());
 			ROS_INFO_STREAM(
 					"next point: (" << nextPoint.pose.position.x << ", " << nextPoint.pose.position.y << ")");
 			geometry_msgs::Twist twist = getTwist(nextPoint);
@@ -193,8 +193,8 @@ int main(int argc, char **argv) {
 	ros::NodeHandle n;
 
 	baseCommandPub = n.advertise<geometry_msgs::Twist>(
-			"base_controller/command", 1000);
-	ros::Subscriber pathSub = n.subscribe("base_controller/path", 100,
+			"base_controller/command", 10);
+	ros::Subscriber pathSub = n.subscribe("base_controller/path", 1,
 			pathCallback);
 	ros::Subscriber odomSub = n.subscribe("base_odometry/odom", 5,
 			odomCallback);
