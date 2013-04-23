@@ -25,7 +25,7 @@
 	<depend package="actionlib" />
 	<depend package="actionlib_msgs" />
 	
-	<rosdep name="eigen"/>
+	<rosdep name="eigen">
 
 </package>
 

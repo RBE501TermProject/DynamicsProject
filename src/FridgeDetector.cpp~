@@ -236,7 +236,7 @@ void FridgeDetector::openFridge() {
 		geometry_msgs::PoseStamped pose, odomPose;
 		double theta = 1.57 / 5.0 * i;
 		pose.pose.position.x = -sin(theta) * FRIDGE_RADIUS;
-		pose.pose.position.y = cos(theta) * FRIDGE_RADIUS;
+		pose.pose.position.y = -cos(theta) * FRIDGE_RADIUS;
 		ROS_INFO_STREAM("Point: " << pose.pose.position.x << ", " << pose.pose.position.y);
 		pose.pose.orientation = tf::createQuaternionMsgFromYaw(theta);
 		//pose.header.stamp = ros::Time::now();

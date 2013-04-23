@@ -83,5 +83,5 @@ public:
 	
 	void rGripperPressureCallback(pr2_msgs::PressureState gripperPressure);
 	
-	void openFridge();
+	void FridgeDetector::openFridge();
 };

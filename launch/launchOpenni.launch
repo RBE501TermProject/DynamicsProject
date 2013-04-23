@@ -1,0 +1,3 @@
+<launch>
+  <include file="/etc/ros/openni_head.launch" />
+</launch>
