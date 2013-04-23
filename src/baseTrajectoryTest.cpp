@@ -17,14 +17,14 @@ int main(int argc, char **argv) {
 	geometry_msgs::PoseStamped pose;
 	pose.pose.position.x = 1.0;
 	pose.pose.position.y = 0.5;
-	tf::Quaternion quat = tf::createQuaternionFromYaw(angles::from_degrees(0));
+	tf::Quaternion quat = tf::createQuaternionFromYaw(angles::from_degrees(-45));
 	tf::quaternionTFToMsg(quat, pose.pose.orientation);
 	pose.header.stamp = ros::Time::now() + ros::Duration(3.0);
 	path.poses.push_back(pose);
 
 	pose.pose.position.x = 1.5;
 	pose.pose.position.y = -1.0;
-	quat = tf::createQuaternionFromYaw(angles::from_degrees(90));
+	quat = tf::createQuaternionFromYaw(angles::from_degrees(45));
 	tf::quaternionTFToMsg(quat, pose.pose.orientation);
 	pose.header.stamp = ros::Time::now() + ros::Duration(6.0);
 	path.poses.push_back(pose);
