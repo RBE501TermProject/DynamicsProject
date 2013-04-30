@@ -12,7 +12,8 @@ FridgeDetector::FridgeDetector() :
 	acRightGripper("/r_gripper_controller/gripper_action", true)
 {
 	frontPressure = 0;
-	
+
+	//Wait for action servers	
 	ROS_INFO("Waiting for move_right_arm action server...");
 	acMoveRightArm.waitForServer();
 	ROS_INFO("Connected to move_right_arm server");
@@ -29,9 +30,9 @@ FridgeDetector::FridgeDetector() :
 	acLeftGripper.waitForServer();
 	ROS_INFO("Finsihed waiting for left gripper action server");
 
+	//Advertise and subscribe to everything required
 	graspFridgeServer = n.advertiseService("fridge_detector/grasp_fridge", &FridgeDetector::graspFridge, this);
 	releaseFridgeServer = n.advertiseService("fridge_detector/release_fridge", &FridgeDetector::releaseFridge, this);
-	
 	baseVelPublisher = n.advertise<geometry_msgs::Twist>("/base_controller/command", 1);
 	basePathPublisher = n.advertise<nav_msgs::Path>("base_controller/path", 1);
 	imageSubscriber = n.subscribe("/head_mount_kinect/rgb/image_color", 1, &FridgeDetector::imageCallback, this);
@@ -43,19 +44,23 @@ void FridgeDetector::rGripperPressureCallback(pr2_msgs::PressureState gripperPre
 {
 	rGripperPressure = gripperPressure;
 	
+	//Calculate average pressure on front of gripper
 	frontPressure = (int)((rGripperPressure.r_finger_tip[3] + rGripperPressure.r_finger_tip[4]) / 2);
 }
 
 bool FridgeDetector::graspFridge(DynamicsProject::GraspFridge::Request &req, DynamicsProject::GraspFridge::Response &res)
 {	
+	//check for image
 	if(img == NULL) {
 		ROS_ERROR("No image has been recieved");
 		return false;
 	}
 
+	//blur to reduce noise
 	blur(img->image, img->image, Size(3, 3));
 	int numBytes = img->image.step * img->image.rows;
 
+	//search pixels using previously established rgb calibration
 	for (int pixelItt = 0; pixelItt < numBytes; pixelItt += 3)
 	{
 		int r = img->image.data[pixelItt];
@@ -64,6 +69,7 @@ bool FridgeDetector::graspFridge(DynamicsProject::GraspFridge::Request &req, Dyn
 		
 		if (r > R_LOW && r < R_HIGH && g > G_LOW && g < G_HIGH && b > B_LOW && b < B_HIGH)
 		{	
+			//group in appropriate cluster and update centroid
 			int pointX = (int)(pixelItt/(img->image.step));
           	int pointY = (int)(pixelItt - pointX * (img->image.step));
           	pointY = (int)(pointY/3);
@@ -106,6 +112,8 @@ bool FridgeDetector::graspFridge(DynamicsProject::GraspFridge::Request &req, Dyn
 		}
 	}
 	ROS_INFO("Number of clusters: %d", pointClusters.size());
+	
+	//if multiple clusters, determine which belongs to the fridge handle
 	if (pointClusters.size() > 0)
 	{
 		int maxPoints = 0;
@@ -122,6 +130,7 @@ bool FridgeDetector::graspFridge(DynamicsProject::GraspFridge::Request &req, Dyn
 		
 		ROS_INFO("width:%d, height:%d", latest_cloud.width, latest_cloud.height);
 		
+		//transform fridge point to 3-D coords
 		PointXYZ p = latest_cloud.at(pointClusters[maxIndex].yCenter, pointClusters[maxIndex].xCenter);
 		
 		geometry_msgs::PointStamped point;
@@ -132,15 +141,18 @@ bool FridgeDetector::graspFridge(DynamicsProject::GraspFridge::Request &req, Dyn
 		
 		geometry_msgs::PointStamped fridgePoint;
 		
+		//Transform point to base frame
 		listener.transformPoint("/base_link", point, fridgePoint);
 		//ROS_INFO("Point: (%f, %f, %f)", fridgePoint.point.x, fridgePoint.point.y, fridgePoint.point.z);
 		
+		//Open gripper
 		pr2_controllers_msgs::Pr2GripperCommandGoal openGripper;
 		openGripper.command.position = 0.08;
 		openGripper.command.max_effort = -1.0;
 		acRightGripper.sendGoal(openGripper);
 		acRightGripper.waitForResult(ros::Duration(5));
 		
+		//path planning to fridge point
 		arm_navigation_msgs::MoveArmGoal armGoal;
 		armGoal.motion_plan_request.group_name = "right_arm";
 		armGoal.motion_plan_request.num_planning_attempts = 1;
@@ -158,6 +170,7 @@ bool FridgeDetector::graspFridge(DynamicsProject::GraspFridge::Request &req, Dyn
 		goalPose.pose.position.y = fridgePoint.point.y;
 		goalPose.pose.position.z = fridgePoint.point.z;
 		
+		//set fixed orientatio
 		goalPose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(3.14159/2.0, 0.0, 0.0);
 	
 		goalPose.absolute_position_tolerance.x = .02;
@@ -167,6 +180,7 @@ bool FridgeDetector::graspFridge(DynamicsProject::GraspFridge::Request &req, Dyn
 		goalPose.absolute_pitch_tolerance = .2;
 		goalPose.absolute_yaw_tolerance = .2;
 	
+		//navigate to approach angle
 		arm_navigation_msgs::addGoalConstraintToMoveArmGoal(goalPose, armGoal);
 	
 		acMoveRightArm.sendGoal(armGoal);
@@ -176,6 +190,7 @@ bool FridgeDetector::graspFridge(DynamicsProject::GraspFridge::Request &req, Dyn
 		{
 			ROS_INFO("Action finished: %s", state.toString().c_str());
 			
+			//Approach handle with force control
 			geometry_msgs::Twist vel;
 			vel.linear.x = .2;
 			
@@ -198,7 +213,6 @@ bool FridgeDetector::graspFridge(DynamicsProject::GraspFridge::Request &req, Dyn
 			acRightGripper.sendGoal(closeGripper);
 			acRightGripper.waitForResult(ros::Duration(5));
 			
-			ROS_INFO("Opening fridge?");
 			openFridge();
 		}
 		else
@@ -207,13 +221,13 @@ bool FridgeDetector::graspFridge(DynamicsProject::GraspFridge::Request &req, Dyn
 		}
 	}
 	
-	
 	pointClusters.clear();
 	return true;
 }
 
 bool FridgeDetector::releaseFridge(DynamicsProject::ReleaseFridge::Request &req, DynamicsProject::ReleaseFridge::Response &res)
 {
+	//release handle
 	pr2_controllers_msgs::Pr2GripperCommandGoal openGripper;
 	openGripper.command.position = 0.0;
 	openGripper.command.max_effort = -1.0;
@@ -225,6 +239,7 @@ bool FridgeDetector::releaseFridge(DynamicsProject::ReleaseFridge::Request &req,
 
 void FridgeDetector::imageCallback(const sensor_msgs::Image& img_msg)
 {
+	//store image information
 	img = cv_bridge::toCvCopy(img_msg, ENCODING);
 	img->header.seq = img_msg.header.seq;
 	img->header.stamp = ros::Time::now();
@@ -233,11 +248,13 @@ void FridgeDetector::imageCallback(const sensor_msgs::Image& img_msg)
 
 void FridgeDetector::cloudCallback(const sensor_msgs::PointCloud2::ConstPtr& pc)
 {
+	//store pointcloud information, converted to a pcl pointcloud
 	fromROSMsg(*pc, latest_cloud);
 	cloud = pc;
 }
 
 void FridgeDetector::openFridge() {
+	//generate and follow quarter circle trajectory to open fridge
 	nav_msgs::Path path;
 	int numSteps = 15;
 	ros::Duration dt(5.0 / ((double) numSteps));

@@ -25,6 +25,7 @@
 #include <pr2_msgs/PressureState.h>
 #include <nav_msgs/Path.h>
 
+//Parameters for CV system
 #define ENCODING "rgb8"
 #define R_LOW 233
 #define R_HIGH 253
@@ -38,22 +39,28 @@
 class FridgeDetector
 {
 public:
+	//image area cluster defined by color region with stored centroid
 	struct pointCluster{
 		int numPoints;
 		int xCenter;
 		int yCenter;
 	};
 	
+	//list of image clusters with centroids
 	std::vector<pointCluster> pointClusters;
 	
+	//point cloud storage
 	pcl::PointCloud<pcl::PointXYZ> latest_cloud;
 	sensor_msgs::PointCloud2::ConstPtr cloud;
 	
+	//ROS tf listener
 	tf::TransformListener listener;
 	
+	//gripper pressure information
 	pr2_msgs::PressureState rGripperPressure;
 	int frontPressure;
 	
+	//ROS publishers, subscribers, and action servers
 	ros::NodeHandle n;
 	
 	ros::ServiceServer graspFridgeServer;
@@ -71,17 +78,48 @@ public:
 	
 	cv_bridge::CvImagePtr img;
 	
+	/**
+	 * Constructor
+	 */
 	FridgeDetector();
 	
+	/**
+	 * Service callback for fridge grasping and opening
+	 * @param req service request
+	 * @param res service response
+	 * @return true on success
+	 */
 	bool graspFridge(DynamicsProject::GraspFridge::Request &req, DynamicsProject::GraspFridge::Response &res);
 	
+	/**
+	 * Service callback for releasing the fridge
+	 * @param req service request
+	 * @param res service response
+	 * @return true on success
+	 */
 	bool releaseFridge(DynamicsProject::ReleaseFridge::Request &req, DynamicsProject::ReleaseFridge::Response &res);
 	
+	/**
+	 * Callback for kinect rgb image
+	 * @param img_msg most recent image from kinect
+	 */
 	void imageCallback(const sensor_msgs::Image& img_msg);
 	
+	/**
+	 * Callback for kinect point cloud
+	 * @param pc most recent kinect point cloud
+	 */
 	void cloudCallback(const sensor_msgs::PointCloud2::ConstPtr& pc);
 	
+	/**
+	 * Callback for PR2 pressure sensor
+	 * @param gripperPressure pressure information for each finger of the PR2 gripper
+	 * 
+	 */
 	void rGripperPressureCallback(pr2_msgs::PressureState gripperPressure);
 	
+	/**
+	 * Trajectory generation and following for fridge opening
+	 */
 	void openFridge();
 };
