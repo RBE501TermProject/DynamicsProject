@@ -17,7 +17,7 @@
 ros::Publisher baseCommandPub;
 
 /// Last odometry message recieved
-nav_msgs::OdometryConstPtr lastOdom;
+geometry_msgs::PoseConstPtr lastOdom;
 
 /**
  * Calculates the cubic trajectory coefficients for the trajectory
@@ -26,6 +26,7 @@ nav_msgs::OdometryConstPtr lastOdom;
  * @param i The index of the next point on the path
  * @return A matrix of the cubic trajectory coefficients for x, y, and theta
  */
+ /*
 Eigen::Matrix<double, 4, 3> cubicTrajCoeff(const nav_msgs::Path::ConstPtr& path,
 		unsigned int i) {
 	geometry_msgs::PoseStamped goal = path->poses[i];
@@ -74,7 +75,7 @@ Eigen::Matrix<double, 4, 3> cubicTrajCoeff(const nav_msgs::Path::ConstPtr& path,
 //	ROS_INFO_STREAM("A = " << std::endl << A);
 	return A;
 }
-
+*/
 /**
  * Calculates the error between the current position and the goal pose
  * @param goal The goal pose
@@ -90,7 +91,7 @@ tf::Pose getErrorTF(geometry_msgs::PoseStamped goal) {
 		return goalTF;
 	}
 
-	tf::poseMsgToTF(lastOdom->pose.pose, odomTF);
+	tf::poseMsgToTF(*lastOdom, odomTF);
 	tf::Pose error = odomTF.inverseTimes(goalTF);
 	ROS_INFO_STREAM(
 			"Error: " << error.getOrigin().getX() << ", " << error.getOrigin().getY() << ", " << angles::to_degrees(tf::getYaw(error.getRotation())));
@@ -102,6 +103,7 @@ tf::Pose getErrorTF(geometry_msgs::PoseStamped goal) {
  * @param coeff The cubic trajectory coeffiecient matrix
  * @param time The time for the point
  */
+ /*
 geometry_msgs::PoseStamped getPoint(Eigen::Matrix<double, 4, 3> coeff,
 		ros::Time time) {
 	double t = time.toSec();
@@ -119,14 +121,16 @@ geometry_msgs::PoseStamped getPoint(Eigen::Matrix<double, 4, 3> coeff,
 			pose.pose.orientation);
 	return pose;
 }
+*/
 
 /**
  * Calculates the twist required to move the robot to the given point for its stamped time
  * @param The goal pose
  */
 geometry_msgs::Twist getTwist(geometry_msgs::PoseStamped goal) {
+
 	tf::Pose error = getErrorTF(goal);
-	double dt = (goal.header.stamp - /*ros::Time::now()*/ lastOdom->header.stamp).toSec();
+	double dt = (goal.header.stamp - ros::Time::now()).toSec();
 	ROS_INFO_STREAM("dt = " << dt);
 	geometry_msgs::Twist twist;
 	twist.linear.x = error.getOrigin().getX() / dt;
@@ -154,7 +158,7 @@ void pathCallback(const nav_msgs::Path::ConstPtr& path) {
 		geometry_msgs::PoseStamped goal = path->poses[i];
 		ROS_INFO_STREAM(
 				"going to pose " << i << " (" << goal.pose.position.x << ", " << goal.pose.position.y << ")");
-		Eigen::Matrix<double, 4, 3> coeff = cubicTrajCoeff(path, i);
+		//Eigen::Matrix<double, 4, 3> coeff = cubicTrajCoeff(path, i);
 		while (ros::ok() && ros::Time::now() + rate.expectedCycleTime() < goal.header.stamp) {
 			ros::spinOnce();
 			geometry_msgs::PoseStamped nextPoint;
@@ -179,9 +183,9 @@ void pathCallback(const nav_msgs::Path::ConstPtr& path) {
  * The callback for odometry messages
  * @param The odometry message
  */
-void odomCallback(const nav_msgs::Odometry::ConstPtr& odom) {
+void odomCallback(const geometry_msgs::Pose::ConstPtr& odom) {
 	ROS_DEBUG_STREAM(
-			"odometry received: " << odom->pose.pose.position.x << ", " << odom->pose.pose.position.y);
+			"odometry received: " << odom->position.x << ", " << odom->position.y);
 	lastOdom = odom;
 }
 
@@ -196,7 +200,7 @@ int main(int argc, char **argv) {
 			"base_controller/command", 10);
 	ros::Subscriber pathSub = n.subscribe("base_controller/path", 1,
 			pathCallback);
-	ros::Subscriber odomSub = n.subscribe("base_odometry/odom", 5,
+	ros::Subscriber odomSub = n.subscribe("robot_pose", 5,
 			odomCallback);
 
 	ROS_INFO("base_trajectory_follower intialized");

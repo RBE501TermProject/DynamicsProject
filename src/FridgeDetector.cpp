@@ -47,9 +47,7 @@ void FridgeDetector::rGripperPressureCallback(pr2_msgs::PressureState gripperPre
 }
 
 bool FridgeDetector::graspFridge(DynamicsProject::GraspFridge::Request &req, DynamicsProject::GraspFridge::Response &res)
-{
-	openFridge();
-
+{	
 	if(img == NULL) {
 		ROS_ERROR("No image has been recieved");
 		return false;
@@ -216,7 +214,12 @@ bool FridgeDetector::graspFridge(DynamicsProject::GraspFridge::Request &req, Dyn
 
 bool FridgeDetector::releaseFridge(DynamicsProject::ReleaseFridge::Request &req, DynamicsProject::ReleaseFridge::Response &res)
 {
-	
+	pr2_controllers_msgs::Pr2GripperCommandGoal openGripper;
+	openGripper.command.position = 0.0;
+	openGripper.command.max_effort = -1.0;
+	acRightGripper.sendGoal(openGripper);
+	acRightGripper.waitForResult(ros::Duration(5));
+		
 	return true;
 }
 
@@ -237,7 +240,7 @@ void FridgeDetector::cloudCallback(const sensor_msgs::PointCloud2::ConstPtr& pc)
 void FridgeDetector::openFridge() {
 	nav_msgs::Path path;
 	int numSteps = 15;
-	ros::Duration dt(3.0 / ((double) numSteps));
+	ros::Duration dt(5.0 / ((double) numSteps));
 	ros::Time t = ros::Time::now();
 	for(int i=0; i<=numSteps; i++) {
 		geometry_msgs::PoseStamped pose, odomPose;
@@ -248,7 +251,7 @@ void FridgeDetector::openFridge() {
 		pose.pose.orientation = tf::createQuaternionMsgFromYaw(theta);
 		//pose.header.stamp = ros::Time::now();
 		pose.header.frame_id = "/base_link";
-		listener.transformPose("/odom_combined", pose, odomPose);
+		listener.transformPose("/map", pose, odomPose);
 		ROS_INFO_STREAM("Odom Point: " << odomPose.pose.position.x << ", " << odomPose.pose.position.y);
 		t += dt;
 		odomPose.header.stamp = t;
