@@ -1,0 +1,4 @@
+sensor_msgs/PointCloud cloud
+int8 numAttempts
+---
+bool success

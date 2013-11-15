@@ -78,48 +78,24 @@ public:
 	
 	cv_bridge::CvImagePtr img;
 	
-	/**
-	 * Constructor
-	 */
+	//Constructor
 	FridgeDetector();
 	
-	/**
-	 * Service callback for fridge grasping and opening
-	 * @param req service request
-	 * @param res service response
-	 * @return true on success
-	 */
+	//Service callback for fridge grasping and opening
 	bool graspFridge(DynamicsProject::GraspFridge::Request &req, DynamicsProject::GraspFridge::Response &res);
 	
-	/**
-	 * Service callback for releasing the fridge
-	 * @param req service request
-	 * @param res service response
-	 * @return true on success
-	 */
+	//Service callback for releasing the fridge
 	bool releaseFridge(DynamicsProject::ReleaseFridge::Request &req, DynamicsProject::ReleaseFridge::Response &res);
 	
-	/**
-	 * Callback for kinect rgb image
-	 * @param img_msg most recent image from kinect
-	 */
+	//Callback for kinect rgb image
 	void imageCallback(const sensor_msgs::Image& img_msg);
 	
-	/**
-	 * Callback for kinect point cloud
-	 * @param pc most recent kinect point cloud
-	 */
+	//Callback for kinect point cloud
 	void cloudCallback(const sensor_msgs::PointCloud2::ConstPtr& pc);
 	
-	/**
-	 * Callback for PR2 pressure sensor
-	 * @param gripperPressure pressure information for each finger of the PR2 gripper
-	 * 
-	 */
+	//Callback for PR2 pressure sensor
 	void rGripperPressureCallback(pr2_msgs::PressureState gripperPressure);
 	
-	/**
-	 * Trajectory generation and following for fridge opening
-	 */
+	//Trajectory generation and following for fridge opening
 	void openFridge();
 };

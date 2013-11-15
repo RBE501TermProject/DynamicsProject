@@ -190,7 +190,6 @@ bool FridgeDetector::graspFridge(DynamicsProject::GraspFridge::Request &req, Dyn
 		{
 			ROS_INFO("Action finished: %s", state.toString().c_str());
 			
-			//Approach handle with force control
 			geometry_msgs::Twist vel;
 			vel.linear.x = .2;
 			
@@ -221,13 +220,13 @@ bool FridgeDetector::graspFridge(DynamicsProject::GraspFridge::Request &req, Dyn
 		}
 	}
 	
+	
 	pointClusters.clear();
 	return true;
 }
 
 bool FridgeDetector::releaseFridge(DynamicsProject::ReleaseFridge::Request &req, DynamicsProject::ReleaseFridge::Response &res)
 {
-	//release handle
 	pr2_controllers_msgs::Pr2GripperCommandGoal openGripper;
 	openGripper.command.position = 0.0;
 	openGripper.command.max_effort = -1.0;
@@ -239,7 +238,6 @@ bool FridgeDetector::releaseFridge(DynamicsProject::ReleaseFridge::Request &req,
 
 void FridgeDetector::imageCallback(const sensor_msgs::Image& img_msg)
 {
-	//store image information
 	img = cv_bridge::toCvCopy(img_msg, ENCODING);
 	img->header.seq = img_msg.header.seq;
 	img->header.stamp = ros::Time::now();
@@ -248,13 +246,11 @@ void FridgeDetector::imageCallback(const sensor_msgs::Image& img_msg)
 
 void FridgeDetector::cloudCallback(const sensor_msgs::PointCloud2::ConstPtr& pc)
 {
-	//store pointcloud information, converted to a pcl pointcloud
 	fromROSMsg(*pc, latest_cloud);
 	cloud = pc;
 }
 
 void FridgeDetector::openFridge() {
-	//generate and follow quarter circle trajectory to open fridge
 	nav_msgs::Path path;
 	int numSteps = 15;
 	ros::Duration dt(5.0 / ((double) numSteps));

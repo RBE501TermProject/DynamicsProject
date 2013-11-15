@@ -1,0 +1,173 @@
+#include "grasp_learning/readGrasps.h"
+
+using namespace std;
+
+readGrasps::readGrasps()
+{
+	//Advertise and subscribe to everything required
+	readGraspServer = n.advertiseService("grasp_reader/read_grasps", &readGrasps::readGraspService, this);
+}
+
+bool readGrasps::readGraspService(grasp_learning::ReadGrasp::Request &req, grasp_learning::ReadGrasp::Response &res)
+{
+	rail_grasping::GraspModel result;
+
+	ifstream inFile(req.grasp_entry.c_str());
+
+	if (inFile.is_open())
+	{
+		string line;
+		while (inFile.good())
+		{
+			//read reference frame
+			getline(inFile, line);
+			string str("reference_frame_id: ");
+			while (inFile.good() && line.find(str) == string::npos)
+				getline(inFile, line);
+			line.erase(0, line.find(str) + str.length());
+			result.reference_frame_id = line;
+			
+			//read pointcloud
+			sensor_msgs::PointCloud tempCloud;
+
+			str = "pointCloud:";
+			while (inFile.good() && line.find(str) == string::npos)
+				getline(inFile, line);
+			
+			str = "header:";
+			while (inFile.good() && line.find(str) == string::npos)
+				getline(inFile, line);
+			
+			str = "frame_id: ";
+			while (inFile.good() && line.find(str) == string::npos)
+				getline(inFile, line);
+			line.erase(0, line.find(str) + str.length());
+			tempCloud.header.frame_id = line;
+			
+			str = "points: ";
+			while (inFile.good() && line.find(str) == string::npos)
+				getline(inFile, line);
+			line.erase(0, line.find(str) + str.length());
+			if (line[0] == '[')
+			{
+				line.erase(line.begin());
+				while (line[0] != ']')
+				{
+					line.erase(line.begin());
+					geometry_msgs::Point32 point;
+					point.x = atof(line.substr(0, line.find(',')).c_str());
+					line.erase(0, line.find(',') + 1);
+					point.y = atof(line.substr(0, line.find(',')).c_str());
+					line.erase(0, line.find(',') + 1);
+					point.z = atof(line.substr(0, line.find(']')).c_str());
+					line.erase(0, line.find(']') + 1);
+					tempCloud.points.push_back(point);
+					if (line[0] == ',')
+						line.erase(line.begin());
+				}
+			}
+			
+			sensor_msgs::ChannelFloat32 channel;
+			
+			str = "channels:";
+			while (inFile.good() && line.find(str) == string::npos)
+				getline(inFile, line);
+			
+			str = "name: ";
+			while (inFile.good() && line.find(str) == string::npos)
+				getline(inFile, line);
+			line.erase(0, line.find(str) + str.length());
+			channel.name = line;
+			
+			str = "values: ";
+			while (inFile.good() && line.find(str) == string::npos)
+				getline(inFile, line);
+			line.erase(0, line.find(str) + str.length());
+			if (line[0] == '[')
+			{
+				line.erase(line.begin());
+				while (line[0] != ']')
+				{
+					if (line.find(',') != string::npos)
+					{
+						channel.values.push_back(atof(line.substr(0, line.find(',')).c_str()));
+						line.erase(0, line.find(',') + 1);
+					}
+					else
+					{ 
+						channel.values.push_back(atof(line.substr(0, line.find(']')).c_str()));
+						line.erase(0, line.find(']'));
+					}
+				}
+				tempCloud.channels.push_back(channel);
+			}
+			
+			result.pointCloud = tempCloud;
+			
+			//read gripper poses
+			while (inFile.good())
+			{
+				geometry_msgs::Pose tempPose;
+				str = "gripperPose:";
+				while (inFile.good() && line.find(str) == string::npos)
+					getline(inFile, line);
+			
+				str = "position: ";
+				while (inFile.good() && line.find(str) == string::npos)
+					getline(inFile, line);
+				line.erase(0, line.find(str) + str.length());
+				if (line[0] == '[')
+				{
+					line.erase(line.begin());
+					tempPose.position.x = atof(line.substr(0, line.find(',')).c_str());
+					line.erase(0, line.find(',') + 1);
+					tempPose.position.y = atof(line.substr(0, line.find(',')).c_str());
+					line.erase(0, line.find(',') + 1);
+					tempPose.position.z = atof(line.substr(0, line.find(']')).c_str());
+				}
+			
+				str = "orientation: ";
+				while (inFile.good() && line.find(str) == string::npos)
+					getline(inFile, line);
+				line.erase(0, line.find(str) + str.length());
+				if (line[0] == '[')
+				{
+					line.erase(line.begin());
+					tempPose.orientation.x = atof(line.substr(0, line.find(',')).c_str());
+					line.erase(0, line.find(',') + 1);
+					tempPose.orientation.y = atof(line.substr(0, line.find(',')).c_str());
+					line.erase(0, line.find(',') + 1);
+					tempPose.orientation.z = atof(line.substr(0, line.find(',')).c_str());
+					line.erase(0, line.find(',') + 1);
+					tempPose.orientation.w = atof(line.substr(0, line.find(']')).c_str());
+					
+					result.gripperPoses.push_back(tempPose);
+				}
+			}
+			
+			break;
+		}
+		inFile.close();
+		
+		res.grasp = result;
+		res.success = true;
+	}
+	else
+	{
+		ROS_INFO_STREAM("File " << req.grasp_entry << " does not exist!");
+		res.success = false;
+	}
+	
+	return true;
+}
+
+int main(int argc, char **argv)
+{
+	ros::init(argc, argv, "grasp_reader");
+	
+	readGrasps rg;
+	
+	ros::spin();
+	
+	return 0;
+}

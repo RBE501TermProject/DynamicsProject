@@ -1,0 +1,4 @@
+string grasp_entry
+---
+bool success
+grasping_user_study/PickupResult grasp

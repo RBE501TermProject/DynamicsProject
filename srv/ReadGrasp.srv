@@ -1,0 +1,4 @@
+string grasp_entry
+---
+bool success
+rail_grasping/GraspModel grasp

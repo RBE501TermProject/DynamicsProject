@@ -1,31 +1,27 @@
 <package>
-	<description brief="DynamicsProject">
+	<description brief="grasp_learning">
 
-     DynamicsProject
+     grasp_learning
 
 	</description>
 	<author>David Kent</author>
 	<license>BSD</license>
 	<review status="unreviewed" notes=""/>
-	<url>http://ros.org/wiki/DynamicsProject</url>
+	<url>http://ros.org/wiki/grasp_learning</url>
 
 	<depend package="roslib"/>
 	<depend package="roscpp"/>
 	<depend package="std_msgs"/>
-	<depend package="cv_bridge"/>
-	<depend package="arm_navigation_msgs"/>
-	<depend package="pr2_controllers_msgs"/>
-	<depend package="pr2_msgs"/>
-	<depend package="sensor_msgs"/>
-	<depend package="geometry_msgs"/>
-	<depend package="nav_msgs"/>
-	<depend package="tf"/>
 	<depend package="pcl_ros" />
 	<depend package="pcl" />
-	<depend package="actionlib" />
-	<depend package="actionlib_msgs" />
+	<depend package="rail_grasping" />
+	<depend package="sensor_msgs" />
+	<depend package="tabletop_object_detector" />
 	
-	<rosdep name="eigen"/>
+	<rosdep name="libmysqlclient-dev"/>
+	<export>
+		<cpp lflags="-lmysqlclient"/>
+	</export>
 
 </package>
 

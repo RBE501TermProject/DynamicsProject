@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.4.6)
 include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 
+
+
 # Set the build type.  Options are:
 #  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
 #  Debug          : w/ debug symbols, w/o optimization
@@ -26,10 +28,12 @@ rosbuild_gensrv()
 #target_link_libraries(${PROJECT_NAME} another_library)
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
-rosbuild_add_executable(fridge_detector src/FridgeDetector.cpp)
-rosbuild_add_executable(base_trajectory_follower src/baseTrajectoryFollower.cpp)
-
-find_package(Eigen REQUIRED)
-include_directories(${Eigen_INCLUDE_DIRS})
+rosbuild_add_executable(grasp_reader src/readGrasps.cpp)
+rosbuild_add_executable(pc_registration src/pcRegistration.cpp)
+rosbuild_add_executable(pc_saver src/pcSaver.cpp)
+rosbuild_add_executable(pc_recognition src/pcRecognition.cpp)
 
 #target_link_libraries(example ${PROJECT_NAME})
+include_directories(/usr/include/vtk-5.8)
+target_link_libraries(pc_registration ${PCL_LIBRARIES} libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so libmysqlcppconn.so)
+target_link_libraries(pc_recognition ${PCL_LIBRARIES} libvtkCommon.so libvtkFiltering.so libvtkRendering.so libvtkGraphics.so)

@@ -26,7 +26,7 @@ geometry_msgs::PoseConstPtr lastOdom;
  * @param i The index of the next point on the path
  * @return A matrix of the cubic trajectory coefficients for x, y, and theta
  */
- 
+ /*
 Eigen::Matrix<double, 4, 3> cubicTrajCoeff(const nav_msgs::Path::ConstPtr& path,
 		unsigned int i) {
 	geometry_msgs::PoseStamped goal = path->poses[i];
@@ -75,7 +75,7 @@ Eigen::Matrix<double, 4, 3> cubicTrajCoeff(const nav_msgs::Path::ConstPtr& path,
 //	ROS_INFO_STREAM("A = " << std::endl << A);
 	return A;
 }
-
+*/
 /**
  * Calculates the error between the current position and the goal pose
  * @param goal The goal pose
@@ -103,7 +103,7 @@ tf::Pose getErrorTF(geometry_msgs::PoseStamped goal) {
  * @param coeff The cubic trajectory coeffiecient matrix
  * @param time The time for the point
  */
- 
+ /*
 geometry_msgs::PoseStamped getPoint(Eigen::Matrix<double, 4, 3> coeff,
 		ros::Time time) {
 	double t = time.toSec();
@@ -121,7 +121,7 @@ geometry_msgs::PoseStamped getPoint(Eigen::Matrix<double, 4, 3> coeff,
 			pose.pose.orientation);
 	return pose;
 }
-
+*/
 
 /**
  * Calculates the twist required to move the robot to the given point for its stamped time

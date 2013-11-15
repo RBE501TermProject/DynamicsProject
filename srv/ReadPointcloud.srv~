@@ -1,0 +1,3 @@
+string grasp_entry
+---
+sensor_msgs/PointCloud cloud
